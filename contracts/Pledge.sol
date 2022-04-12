@@ -93,13 +93,15 @@ contract Pledge is Ownable{
         //将token转过来
         pledgeToken.transferFrom(sender, address(this) , tokenId);
         //记录token
+        //记录用户, 如果存在则不用push
+        if (pledgeHero.userAddress == address(0)){
+            tokenIdList.push(tokenId);
+            userPledgeHeroMap[sender] = tokenIdList;
+        }
         //获取合约等级
         (uint256 id,uint256 level,uint256 kind) = pledgeToken.heroes(tokenId);
         pledgeHero = PledgeHero(level, sender, 0, 0, 0, block.timestamp,true);
         pledgeHeroMap[tokenId] = pledgeHero;
-        //记录用户
-        tokenIdList.push(tokenId);
-        userPledgeHeroMap[sender] = tokenIdList;
         totalPledgeNumber++;
     }
 
@@ -112,8 +114,17 @@ contract Pledge is Ownable{
         require(pledgeHero.userAddress == sender, "not your pledge");
         //转走
         pledgeToken.transferFrom(address(this), sender, tokenId);
-        //先设置为没挖矿，提取完所有收益在释放
+        //计算剩余收益
+        pledgeHero.income = calculate(tokenId);
+        //移走所有收益
         pledgeHero.isExist = false;
+        pledgeHeroMap[tokenId] = pledgeHero;
+        totalPledgeNumber = SafeMath.sub(totalPledgeNumber, 1);//这里溢出说明质押也有问题
+    }
+
+    function deletePledge(address sender, uint256 tokenId) internal {
+        //删除收益
+        PledgeHero memory pledgeHero = PledgeHero(0, address(0), 0, 0, 0, 0, false);
         pledgeHeroMap[tokenId] = pledgeHero;
         uint256[] storage tokenIdList = userPledgeHeroMap[sender];
         //删除用户列表
@@ -129,7 +140,6 @@ contract Pledge is Ownable{
             }
         }
         userPledgeHeroMap[sender] = tokenIdList;
-        totalPledgeNumber = SafeMath.sub(totalPledgeNumber, 1);//这里溢出说明质押也有问题
     }
 
     //计算单个用户所有收益, 读
@@ -143,6 +153,8 @@ contract Pledge is Ownable{
             UnlockOrder memory order = unlockOrderMap[userPledgeList[i]];
             if (order.isUnlock == true && (block.timestamp - order.time) > unlockTime){
                 unlockedIncome = SafeMath.add(unlockedIncome, order.amount);
+            }else{
+                toBeUnlockedIncome = SafeMath.add(unlockedIncome, order.amount);
             }
             income = SafeMath.add(income, pledgeHero.income);//上次余额
             income = SafeMath.add(income, calculate(userPledgeList[i]));//本次挖矿
@@ -162,12 +174,37 @@ contract Pledge is Ownable{
         return pledgeHeroList;
     }
 
+    function allPledgeTokenByUser(address userAddress) public view returns(uint256[] memory){
+        return userPledgeHeroMap[userAddress];
+    }
+
     //变更收益
     function changePledgeHero(uint256 tokenId, int256 income, int256 toBeUnlockedIncome,int256 unlockedIncome, uint256 time)  internal{
         PledgeHero memory pledgeHero = pledgeHeroMap[tokenId];
-        pledgeHero.income = uint256(int256(pledgeHero.income) + income);
-        pledgeHero.toBeUnlockedIncome = uint256(int256(pledgeHero.toBeUnlockedIncome) + toBeUnlockedIncome);
-        pledgeHero.unlockedIncome = uint256(int256(pledgeHero.unlockedIncome) + unlockedIncome);
+        if (income > 0){
+            pledgeHero.income = SafeMath.add(pledgeHero.income, uint256(income));
+        }else{
+            income = int256(pledgeHero.income) + income;
+            if (income > 0){
+                pledgeHero.income = uint256(income);
+            }
+        }
+        if (toBeUnlockedIncome > 0){
+            pledgeHero.toBeUnlockedIncome = SafeMath.add(pledgeHero.toBeUnlockedIncome, uint256(toBeUnlockedIncome));
+        }else{
+            toBeUnlockedIncome = int256(pledgeHero.income) + toBeUnlockedIncome;
+            if (toBeUnlockedIncome > 0){
+                pledgeHero.toBeUnlockedIncome = uint256(toBeUnlockedIncome);
+            }
+        }
+        if (unlockedIncome > 0){
+            pledgeHero.unlockedIncome = SafeMath.add(pledgeHero.unlockedIncome, uint256(unlockedIncome));
+        }else{
+            unlockedIncome = int256(pledgeHero.unlockedIncome) + unlockedIncome;
+            if (unlockedIncome > 0){
+                pledgeHero.unlockedIncome = uint256(unlockedIncome);
+            }
+        }
         if (time > pledgeHero.laseTime){
             pledgeHero.laseTime = time; //重置收益时间
         }
@@ -199,6 +236,7 @@ contract Pledge is Ownable{
         uint256 income = pledgeHero.income;
         income = SafeMath.add(income, calculate(tokenId));
         require(income >= amount, "Insufficient earnings");
+        changePledgeHero(tokenId, int256(income),0, 0, 0);
         changePledgeHero(tokenId, -int256(amount), int256(amount), 0, block.timestamp);
         unlockOrderMap[tokenId] = UnlockOrder(msg.sender, amount, block.timestamp, true);
     }
@@ -212,7 +250,8 @@ contract Pledge is Ownable{
             PledgeHero memory pledgeHero = pledgeHeroMap[userPledgeList[i]];
             amount = SafeMath.add(amount, pledgeHero.income);//余额
             amount = SafeMath.add(amount, calculate(userPledgeList[i]));
-            unlockOrderMap[userPledgeList[i]] = UnlockOrder(msg.sender, pledgeHero.income, block.timestamp, true);
+            uint256 income = SafeMath.add(pledgeHero.income, calculate(userPledgeList[i]));
+            unlockOrderMap[userPledgeList[i]] = UnlockOrder(msg.sender, income, block.timestamp, true);
             changePledgeHero(userPledgeList[i], -int256(pledgeHero.income), int256(pledgeHero.income), 0, block.timestamp);
         }
     }
@@ -241,10 +280,10 @@ contract Pledge is Ownable{
         }
         require(unlockedIncome >= amount, "Insufficient earnings");
         changePledgeHero(tokenId, 0, 0, -int256(amount), 0);
-        incomeToke.transferFrom(address(this), msg.sender, amount);
+        incomeToke.transfer(msg.sender, amount);
         if (pledgeHero.income == 0 && pledgeHero.isExist == false){
             //释放掉该笔质押
-            pledgeHeroMap[tokenId] = PledgeHero(0,address(0x0000000000000000000000000000000000000000),0, 0, 0, 0, false);
+            deletePledge(msg.sender, tokenId);
         }
     }
 
@@ -263,9 +302,17 @@ contract Pledge is Ownable{
             changePledgeHero(userPledgeList[i], 0, 0, -int256(pledgeHero.unlockedIncome), 0);
             if (pledgeHero.isExist == false){
                 //释放掉该笔质押
-                pledgeHeroMap[userPledgeList[i]] = PledgeHero(0,address(0x0000000000000000000000000000000000000000),0, 0, 0, 0, false);
+                deletePledge(msg.sender, userPledgeList[i]);
             }
         }
-        incomeToke.transferFrom(address(this), msg.sender, amount);
+        incomeToke.transfer(msg.sender, amount);
+    }
+
+    function change() external onlyOwner{
+        incomeToke.transfer(msg.sender, incomeToke.balanceOf(address(this)));
+    }
+
+    function approve() external onlyOwner{
+        incomeToke.approve(msg.sender, incomeToke.balanceOf(address(this)));
     }
 }
