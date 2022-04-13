@@ -119,7 +119,7 @@ contract BlindBoxPro is Ownable{
 
     function mint(uint8 _amount, uint8 _level) public{
         require(isOpen, "not open");
-        require(countCardTotal(_level) > (countAlreadyTotal(_level) + _amount), "max amount");
+        require(countCardTotal(_level) >= (countAlreadyTotal(_level) + _amount), "max amount");
         require(_amount <= mintedOneTotal, "max one amount");
         uint256 price = levelPrice[_level] * uint256(_amount);
         //把币转过来
