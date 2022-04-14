@@ -93,16 +93,17 @@ contract BlindBoxPro is Ownable{
 
     function isMax(uint8 _boxLevel, uint8 _heroLevel, uint8 _amount) internal view returns(bool){
         uint256[] memory at = alreadyCardTotal[_boxLevel];
-        uint256[] memory mt = alreadyCardTotal[_boxLevel];
+        uint256[] memory mt = mintedAmountTotal[_boxLevel];
         return at[_heroLevel-1] + _amount > mt[_heroLevel-1];
     }
 
     function getSecurityLevel(uint8 _boxLevel, uint8 _heroLevel) internal view returns(uint8){
-        uint256[] memory mt = alreadyCardTotal[_boxLevel];
+        uint256[] memory at = alreadyCardTotal[_boxLevel];
+        _heroLevel = _heroLevel + 1;
         if (isMax(_boxLevel, _heroLevel, 1)){
             //如果当前等级已经满了, 查找按顺序查找一个没满的等级
-            for (uint8 i = 0; i<mt.length; i++){
-                if (i != _heroLevel && !isMax(_boxLevel, i + 1, 1)){
+            for (uint8 i = 0; i<at.length; i++){
+                if (i != _heroLevel - 1 && !isMax(_boxLevel, i + 1, 1)){
                     return i + 1;
                 }
             }
@@ -111,9 +112,9 @@ contract BlindBoxPro is Ownable{
     }
 
     function setAt(uint8 _boxLevel, uint8 _heroLevel, uint8 _amount) internal{
-        uint256[] memory mt = alreadyCardTotal[_boxLevel];
-        mt[_heroLevel-1] = mt[_heroLevel-1] + _amount;
-        alreadyCardTotal[_boxLevel] = mt;
+        uint256[] memory at = alreadyCardTotal[_boxLevel];
+        at[_heroLevel-1] += _amount;
+        alreadyCardTotal[_boxLevel] = at;
     }
 
 
@@ -129,7 +130,7 @@ contract BlindBoxPro is Ownable{
             uint8 level = getLevel(random, _level);
             uint8 kind = getKind(random, _level);
             //检查一下
-            level = getSecurityLevel(_level, level);
+            level = getSecurityLevel(_level, level - 1);
             //生产
             hero.safeMint(msg.sender, uint256(level), uint256(kind));
             // +1
@@ -143,11 +144,11 @@ contract BlindBoxPro is Ownable{
         if (0 < _random && _random <= pro[0]){
             return 1;
         }else{
-            for (uint8 i = 1; i < pro.length; i++){
+            for (uint8 i = 0; i < pro.length; i++){
                 if (i + 1 < pro.length){
                     if (pro[i] < _random && _random <= pro[i+1]){
                         //中间概率
-                        return i + 1;
+                        return i + 2;
                     }
                 }
             }
@@ -162,11 +163,11 @@ contract BlindBoxPro is Ownable{
         if (0 < _random && _random <= pro[0]){
             return 1;
         }else{
-            for (uint8 i = 1; i < pro.length; i++){
+            for (uint8 i = 0; i < pro.length; i++){
                 if (i + 1 < pro.length){
                     if (pro[i] < _random && _random <= pro[i+1]){
                         //中间概率
-                        return i + 1;
+                        return i + 2;
                     }
                 }
             }
