@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.2 <0.8.0;
+pragma solidity >=0.6.2 <0.9.0;
 pragma experimental ABIEncoderV2;
 
 import "./Hero.sol";
@@ -10,8 +10,6 @@ import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-
-// v1  0x50cA319bED4Fc3eCBF60c0e885399a4AC7A3db49
 // 质押
 contract Pledge is Ownable{
 
@@ -48,14 +46,15 @@ contract Pledge is Ownable{
     }
 
     //用户解锁订单
-    mapping(uint256 => UnlockOrder) public unlockOrderMap;
+    mapping(uint256 => UnlockOrder[]) public  unlockOrderMap;
 
     constructor(address _incomeToke, address _pledgeToken){
         incomeToke = IERC20(_incomeToke);
         pledgeToken = Hero(_pledgeToken);
         isOpen = true;
         maxPledgeAmount = 100;
-        unlockTime = 259200;//72 小时
+//        unlockTime = 259200;//72 小时
+        unlockTime = 60;
     }
 
     function open(bool _isOpen) external onlyOwner{
@@ -150,11 +149,13 @@ contract Pledge is Ownable{
         uint256 unlockedIncome = 0;
         for(uint32 i = 0; i <  userPledgeList.length; i++){
             PledgeHero memory pledgeHero = pledgeHeroMap[userPledgeList[i]];
-            UnlockOrder memory order = unlockOrderMap[userPledgeList[i]];
-            if (order.isUnlock == true && (block.timestamp - order.time) > unlockTime){
-                unlockedIncome = SafeMath.add(unlockedIncome, order.amount);
-            }else{
-                toBeUnlockedIncome = SafeMath.add(unlockedIncome, order.amount);
+            UnlockOrder[] storage orderList = unlockOrderMap[userPledgeList[i]];
+            for (uint256 i = 0; i < orderList.length; i++){
+                if (orderList[i].isUnlock == true && (block.timestamp - orderList[i].time) >= unlockTime){
+                    unlockedIncome = SafeMath.add(unlockedIncome, orderList[i].amount);
+                }else{
+                    toBeUnlockedIncome = SafeMath.add(toBeUnlockedIncome, orderList[i].amount);
+                }
             }
             income = SafeMath.add(income, pledgeHero.income);//上次余额
             income = SafeMath.add(income, calculate(userPledgeList[i]));//本次挖矿
@@ -238,33 +239,45 @@ contract Pledge is Ownable{
         require(income >= amount, "Insufficient earnings");
         changePledgeHero(tokenId, int256(income),0, 0, 0);
         changePledgeHero(tokenId, -int256(amount), int256(amount), 0, block.timestamp);
-        unlockOrderMap[tokenId] = UnlockOrder(msg.sender, amount, block.timestamp, true);
+        UnlockOrder memory order = UnlockOrder({
+            user: msg.sender,
+            amount: income,
+            time: block.timestamp,
+            isUnlock: true
+        });
+        unlockOrderMap[tokenId].push(order);
     }
 
     //提取所有收益
     function extract() public {
         //减掉所有收益
         uint256[] memory userPledgeList = userPledgeHeroMap[msg.sender];
-        uint256 amount = 0;
         for(uint32 i = 0; i <  userPledgeList.length; i++){
             PledgeHero memory pledgeHero = pledgeHeroMap[userPledgeList[i]];
-            amount = SafeMath.add(amount, pledgeHero.income);//余额
-            amount = SafeMath.add(amount, calculate(userPledgeList[i]));
-            uint256 income = SafeMath.add(pledgeHero.income, calculate(userPledgeList[i]));
-            unlockOrderMap[userPledgeList[i]] = UnlockOrder(msg.sender, income, block.timestamp, true);
+            uint256 income = calculate(userPledgeList[i]);
+            income = SafeMath.add(income, pledgeHero.income);//余额
+            UnlockOrder memory order = UnlockOrder({
+                user: msg.sender,
+                amount: income,
+                time: block.timestamp,
+                isUnlock: true
+            });
+            unlockOrderMap[userPledgeList[i]].push(order);
             changePledgeHero(userPledgeList[i], -int256(pledgeHero.income), int256(pledgeHero.income), 0, block.timestamp);
         }
     }
 
     //释放收益, 不检查时间
-    function freed(uint256 tokenId, uint256 amount) external onlyOwner{
+    function freed(uint256 tokenId) external onlyOwner{
         PledgeHero memory pledgeHero = pledgeHeroMap[tokenId];
-        UnlockOrder memory order = unlockOrderMap[tokenId];
+        UnlockOrder[] storage orderList = unlockOrderMap[tokenId];
         uint256 unlockAmount = pledgeHero.toBeUnlockedIncome;
-        unlockAmount =SafeMath.add(unlockAmount, order.amount);
-        require(unlockAmount >= amount, "Insufficient earnings");
-        changePledgeHero(tokenId, 0, -int256(amount), int256(amount), 0);
-        unlockOrderMap[tokenId] = UnlockOrder(address(0x0000000000000000000000000000000000000000),0,0,false);
+        for (uint256 i = 0; i< orderList.length; i++){
+            unlockAmount = SafeMath.add(unlockAmount, orderList[i].amount);
+            delete orderList[i];
+        }
+        changePledgeHero(tokenId, 0, -int256(pledgeHero.toBeUnlockedIncome), int256(unlockAmount), 0);
+        unlockOrderMap[tokenId] = orderList;
     }
 
     //转出收益
@@ -272,13 +285,19 @@ contract Pledge is Ownable{
         PledgeHero memory pledgeHero = pledgeHeroMap[tokenId];
         require(pledgeHero.userAddress == msg.sender, "not your earnings");
         uint256 unlockedIncome = pledgeHero.unlockedIncome;
-        UnlockOrder memory order = unlockOrderMap[tokenId];
-        if (order.isUnlock == true && (block.timestamp - order.time) >= unlockTime){
-            unlockedIncome = SafeMath.add(unlockedIncome, order.amount);
-            changePledgeHero(tokenId, 0, 0, -int256(order.amount), 0);
-            unlockOrderMap[tokenId] = UnlockOrder(address(0x0000000000000000000000000000000000000000),0,0,false);
+        UnlockOrder[] storage orderList = unlockOrderMap[tokenId];
+        for (uint256 i = 0; i < orderList.length; i++){
+            if (orderList[i].isUnlock == true && (block.timestamp - orderList[i].time) >= unlockTime){
+                unlockedIncome = SafeMath.add(unlockedIncome, orderList[i].amount);
+                delete orderList[i];
+            }
         }
+        unlockOrderMap[tokenId] = orderList;
         require(unlockedIncome >= amount, "Insufficient earnings");
+        uint256 balance = unlockedIncome - amount;
+        if (balance > 0){
+            changePledgeHero(tokenId, 0, 0, int256(amount), 0);
+        }
         changePledgeHero(tokenId, 0, 0, -int256(amount), 0);
         incomeToke.transfer(msg.sender, amount);
         if (pledgeHero.income == 0 && pledgeHero.isExist == false){
@@ -293,11 +312,14 @@ contract Pledge is Ownable{
         uint256 amount = 0;
         for(uint32 i = 0; i <  userPledgeList.length; i++){
             PledgeHero memory pledgeHero = pledgeHeroMap[userPledgeList[i]];
-            UnlockOrder memory order = unlockOrderMap[userPledgeList[i]];
-            if (order.isUnlock == true && (block.timestamp - order.time) >= unlockTime){
-                amount =SafeMath.add(amount, order.amount);
-                unlockOrderMap[userPledgeList[i]] = UnlockOrder(address(0x0000000000000000000000000000000000000000),0,0,false);
+            UnlockOrder[] storage orderList = unlockOrderMap[userPledgeList[i]];
+            for (uint256 i = 0; i < orderList.length; i++){
+                if (orderList[i].isUnlock == true && (block.timestamp - orderList[i].time) >= unlockTime){
+                    amount = SafeMath.add(amount, orderList[i].amount);
+                    delete orderList[i];
+                }
             }
+            unlockOrderMap[userPledgeList[i]] = orderList;
             amount += pledgeHero.unlockedIncome;
             changePledgeHero(userPledgeList[i], 0, 0, -int256(pledgeHero.unlockedIncome), 0);
             if (pledgeHero.isExist == false){
