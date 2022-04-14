@@ -162,7 +162,7 @@ contract Pledge is Ownable{
             toBeUnlockedIncome = SafeMath.add(toBeUnlockedIncome, pledgeHero.toBeUnlockedIncome);
             unlockedIncome = SafeMath.add(unlockedIncome, pledgeHero.unlockedIncome);
         }
-        return [totalPledgeNumber,userPledgeList.length,income,toBeUnlockedIncome, unlockedIncome];
+        return [totalPledgeNumber,allPledgeTokenByUser(userAddress).length,income,toBeUnlockedIncome, unlockedIncome];
     }
 
     //单个用户所有质押
@@ -176,7 +176,15 @@ contract Pledge is Ownable{
     }
 
     function allPledgeTokenByUser(address userAddress) public view returns(uint256[] memory){
-        return userPledgeHeroMap[userAddress];
+        uint256[] memory userPledgeList = userPledgeHeroMap[userAddress];
+        uint256[] memory userPledge = new uint256[](userPledgeList.length);
+        for (uint256 i = 0; i < userPledgeList.length; i++){
+            PledgeHero memory hero = pledgeHeroMap[userPledgeList[i]];
+            if (hero.isExist == true){
+                userPledge[i] = userPledgeList[i];
+            }
+        }
+        return userPledge;
     }
 
     //变更收益
