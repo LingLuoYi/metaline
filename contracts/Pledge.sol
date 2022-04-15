@@ -194,7 +194,7 @@ contract Pledge is Ownable{
             pledgeHero.income = SafeMath.add(pledgeHero.income, uint256(income));
         }else{
             income = int256(pledgeHero.income) + income;
-            if (income > 0){
+            if (income >= 0){
                 pledgeHero.income = uint256(income);
             }
         }
@@ -202,7 +202,7 @@ contract Pledge is Ownable{
             pledgeHero.toBeUnlockedIncome = SafeMath.add(pledgeHero.toBeUnlockedIncome, uint256(toBeUnlockedIncome));
         }else{
             toBeUnlockedIncome = int256(pledgeHero.income) + toBeUnlockedIncome;
-            if (toBeUnlockedIncome > 0){
+            if (toBeUnlockedIncome >= 0){
                 pledgeHero.toBeUnlockedIncome = uint256(toBeUnlockedIncome);
             }
         }
@@ -210,7 +210,7 @@ contract Pledge is Ownable{
             pledgeHero.unlockedIncome = SafeMath.add(pledgeHero.unlockedIncome, uint256(unlockedIncome));
         }else{
             unlockedIncome = int256(pledgeHero.unlockedIncome) + unlockedIncome;
-            if (unlockedIncome > 0){
+            if (unlockedIncome >= 0){
                 pledgeHero.unlockedIncome = uint256(unlockedIncome);
             }
         }
@@ -246,7 +246,7 @@ contract Pledge is Ownable{
         income = SafeMath.add(income, calculate(tokenId));
         require(income >= amount, "Insufficient earnings");
         changePledgeHero(tokenId, int256(income),0, 0, 0);
-        changePledgeHero(tokenId, -int256(amount), int256(amount), 0, block.timestamp);
+        changePledgeHero(tokenId, -int256(amount), int256(SafeMath.sub(income, amount)), 0, block.timestamp);
         UnlockOrder memory order = UnlockOrder({
             user: msg.sender,
             amount: income,
@@ -271,7 +271,7 @@ contract Pledge is Ownable{
                 isUnlock: true
             });
             unlockOrderMap[userPledgeList[i]].push(order);
-            changePledgeHero(userPledgeList[i], -int256(pledgeHero.income), int256(pledgeHero.income), 0, block.timestamp);
+            changePledgeHero(userPledgeList[i], -int256(pledgeHero.income), 0, 0, block.timestamp);
         }
     }
 
