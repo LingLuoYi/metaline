@@ -1,4 +1,5 @@
 pragma solidity >=0.6.2 <0.8.0;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -133,6 +134,12 @@ contract BlindBoxPro is Ownable{
             level = getSecurityLevel(_level, level - 1);
             //生产
             hero.safeMint(msg.sender, uint256(level), uint256(kind));
+            //查询
+            Hero.Hero[] memory heroList = hero.getTotalHeroes(msg.sender, 0, hero.balanceOf(msg.sender));
+            if (heroList.length > 0){
+                Hero.Hero memory hero1 = heroList[heroList.length - 1];
+                emit Mint(msg.sender, _level + 1, hero1.id);
+            }
             // +1
             setAt(_level, level, 1);
         }
@@ -184,5 +191,7 @@ contract BlindBoxPro is Ownable{
     function change() external onlyOwner{
         usdt.transferFrom(address(this), msg.sender, usdt.balanceOf(address(this)));
     }
+
+    event Mint(address indexed owner, uint8 indexed box_type, uint256 indexed tokenId);
 
 }
