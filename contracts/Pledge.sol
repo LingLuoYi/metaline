@@ -19,6 +19,7 @@ contract Pledge is Ownable{
     IERC20 incomeToke; //收益token
     Hero pledgeToken; //质押token
 
+    mapping(address => bool) public operators;
     uint256 public maxPledgeAmount;//个人最大质押数量
     uint256 public unlockTime;//解锁时长秒
     uint256 totalPledgeNumber;
@@ -53,8 +54,8 @@ contract Pledge is Ownable{
         pledgeToken = Hero(_pledgeToken);
         isOpen = true;
         maxPledgeAmount = 100;
-//        unlockTime = 259200;//72 小时
-        unlockTime = 60;
+        unlockTime = 259200;//72 小时
+        operators[msg.sender] = true;
     }
 
     function open(bool _isOpen) external onlyOwner{
@@ -66,7 +67,7 @@ contract Pledge is Ownable{
         maxPledgeAmount = _maxPledgeAmount;
     }
 
-    function setDailyProduction(uint256[] memory _dailyProductions) external onlyOwner {
+    function setDailyProduction(uint256[] memory _dailyProductions) external onlyOperator {
         for (uint256 i=0; i<_dailyProductions.length; i++){
             dailyProduction[i] = _dailyProductions[i];
         }
@@ -78,6 +79,14 @@ contract Pledge is Ownable{
 
     function authorize(address owner, uint256 tokenId) external onlyOwner {
         pledgeToken.approve(owner, tokenId);
+    }
+
+    function setOperator(address _addr, bool _bool) public onlyOwner {
+        operators[_addr] = _bool;
+    }
+
+    modifier onlyOperator() {
+        require(operators[msg.sender], "!o");
     }
 
     //

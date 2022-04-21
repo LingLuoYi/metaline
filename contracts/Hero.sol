@@ -75,8 +75,7 @@ contract Hero is Ownable, ERC721Burnable {
     }
 
     modifier onlyMinter() {
-        // require(minters[msg.sender], "!minter"); //todo
-        _;
+         require(minters[msg.sender], "!minter"); //todo
     }
 
 
