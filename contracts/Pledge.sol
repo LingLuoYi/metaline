@@ -58,6 +58,14 @@ contract Pledge is Ownable{
         operators[msg.sender] = true;
     }
 
+    function setIncomeToke(address _address) external onlyOwner{
+        incomeToke = IERC20(_address);
+    }
+
+    function setPledgeToken(address _address) external onlyOwner{
+        pledgeToken = Hero(_address);
+    }
+
     function open(bool _isOpen) external onlyOwner{
         isOpen = _isOpen;
     }
@@ -87,6 +95,7 @@ contract Pledge is Ownable{
 
     modifier onlyOperator() {
         require(operators[msg.sender], "!o");
+        _;
     }
 
     //

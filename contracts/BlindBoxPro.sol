@@ -23,9 +23,9 @@ contract BlindBoxPro is Ownable{
 
 
     constructor (address _heroToken, address _usdtToken) public{
-        levelPrice[0] = 1e18; //普通版
-        levelPrice[1] = 2e18; //创世版
-        levelPrice[2] = 3e18; //牛逼创世版
+        levelPrice[0] = 99e18; //普通版
+        levelPrice[1] = 299e18; //创世版
+        levelPrice[2] = 499e18; //牛逼创世版
         isOpen = true;
         mintedOneTotal = 99;
         hero = Hero(_heroToken);
@@ -44,6 +44,14 @@ contract BlindBoxPro is Ownable{
         alreadyCardTotal[0] = [0,0,0,0,0];
         alreadyCardTotal[1] = [0,0,0,0,0];
         alreadyCardTotal[2] = [0,0,0,0,0];
+    }
+
+    function setHeroToken(address _address) external onlyOwner{
+        hero = Hero(_address);
+    }
+
+    function setUsdtToken(address _address) external onlyOwner{
+        usdt = IERC20(_address);
     }
 
     function open(bool _isOpen) external onlyOwner{
@@ -138,7 +146,7 @@ contract BlindBoxPro is Ownable{
             Hero.Hero[] memory heroList = hero.getTotalHeroes(msg.sender, 0, hero.balanceOf(msg.sender));
             if (heroList.length > 0){
                 Hero.Hero memory hero1 = heroList[heroList.length - 1];
-                emit Mint(msg.sender, _level + 1, hero1.id);
+                emit Mint(msg.sender, _level + 1, hero1.id, hero1.level, hero1.kind);
             }
             // +1
             setAt(_level, level, 1);
@@ -189,9 +197,9 @@ contract BlindBoxPro is Ownable{
     }
 
     function change() external onlyOwner{
-        usdt.transferFrom(address(this), msg.sender, usdt.balanceOf(address(this)));
+        usdt.transfer(msg.sender, usdt.balanceOf(address(this)));
     }
 
-    event Mint(address indexed owner, uint8 indexed box_type, uint256 indexed tokenId);
+    event Mint(address indexed owner, uint8 indexed box_type, uint256 indexed token_id, uint256 level, uint256 kind);
 
 }

@@ -38,6 +38,7 @@ contract Attribute is Ownable {
 
     modifier onlyOperator() {
         require(operators[msg.sender], "!o");
+        _;
     }
 
     function getSpeciesAttributes(uint _id) public view returns (uint[] memory) {
