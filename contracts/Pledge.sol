@@ -58,36 +58,36 @@ contract Pledge is Ownable{
         operators[msg.sender] = true;
     }
 
-    function setIncomeToke(address _address) external onlyOwner{
-        incomeToke = IERC20(_address);
-    }
-
-    function setPledgeToken(address _address) external onlyOwner{
-        pledgeToken = Hero(_address);
-    }
-
-    function open(bool _isOpen) external onlyOwner{
-        isOpen = _isOpen;
-    }
-
-    function setMaxPledgeAmount(uint256 _maxPledgeAmount) external onlyOwner {
-
-        maxPledgeAmount = _maxPledgeAmount;
-    }
-
-    function setDailyProduction(uint256[] memory _dailyProductions) external onlyOperator {
-        for (uint256 i=0; i<_dailyProductions.length; i++){
-            dailyProduction[i] = _dailyProductions[i];
-        }
-    }
-
-    function setUnlockTime(uint256 _time) external onlyOwner{
-        unlockTime = _time;
-    }
-
-    function authorize(address owner, uint256 tokenId) external onlyOwner {
-        pledgeToken.approve(owner, tokenId);
-    }
+//    function setIncomeToke(address _address) external onlyOwner{
+//        incomeToke = IERC20(_address);
+//    }
+//
+//    function setPledgeToken(address _address) external onlyOwner{
+//        pledgeToken = Hero(_address);
+//    }
+//
+//    function open(bool _isOpen) external onlyOwner{
+//        isOpen = _isOpen;
+//    }
+//
+//    function setMaxPledgeAmount(uint256 _maxPledgeAmount) external onlyOwner {
+//
+//        maxPledgeAmount = _maxPledgeAmount;
+//    }
+//
+//    function setDailyProduction(uint256[] memory _dailyProductions) external onlyOperator {
+//        for (uint256 i=0; i<_dailyProductions.length; i++){
+//            dailyProduction[i] = _dailyProductions[i];
+//        }
+//    }
+//
+//    function setUnlockTime(uint256 _time) external onlyOwner{
+//        unlockTime = _time;
+//    }
+//
+//    function authorize(address owner, uint256 tokenId) external onlyOwner {
+//        pledgeToken.approve(owner, tokenId);
+//    }
 
     function setOperator(address _addr, bool _bool) public onlyOwner {
         operators[_addr] = _bool;
@@ -239,9 +239,9 @@ contract Pledge is Ownable{
     }
 
     //直接赋值收益，不做计算
-    function changeIncome(uint256 tokenId,int256 income) external onlyOwner{
-        changePledgeHero(tokenId, int256(income), 0, 0, 0);
-    }
+//    function changeIncome(uint256 tokenId,int256 income) external onlyOwner{
+//        changePledgeHero(tokenId, int256(income), 0, 0, 0);
+//    }
 
     //计算收益
     function calculate(uint256 tokenId) internal view returns(uint256){
@@ -294,17 +294,17 @@ contract Pledge is Ownable{
     }
 
     //释放收益, 不检查时间
-    function freed(uint256 tokenId) external onlyOwner{
-        PledgeHero memory pledgeHero = pledgeHeroMap[tokenId];
-        UnlockOrder[] storage orderList = unlockOrderMap[tokenId];
-        uint256 unlockAmount = pledgeHero.toBeUnlockedIncome;
-        for (uint256 i = 0; i< orderList.length; i++){
-            unlockAmount = SafeMath.add(unlockAmount, orderList[i].amount);
-            delete orderList[i];
-        }
-        changePledgeHero(tokenId, 0, -int256(pledgeHero.toBeUnlockedIncome), int256(unlockAmount), 0);
-        unlockOrderMap[tokenId] = orderList;
-    }
+//    function freed(uint256 tokenId) external onlyOwner{
+//        PledgeHero memory pledgeHero = pledgeHeroMap[tokenId];
+//        UnlockOrder[] storage orderList = unlockOrderMap[tokenId];
+//        uint256 unlockAmount = pledgeHero.toBeUnlockedIncome;
+//        for (uint256 i = 0; i< orderList.length; i++){
+//            unlockAmount = SafeMath.add(unlockAmount, orderList[i].amount);
+//            delete orderList[i];
+//        }
+//        changePledgeHero(tokenId, 0, -int256(pledgeHero.toBeUnlockedIncome), int256(unlockAmount), 0);
+//        unlockOrderMap[tokenId] = orderList;
+//    }
 
     //转出收益
     function withdraw(uint256 tokenId,uint amount) public{
@@ -356,11 +356,11 @@ contract Pledge is Ownable{
         incomeToke.transfer(msg.sender, amount);
     }
 
-    function change() external onlyOwner{
-        incomeToke.transfer(msg.sender, incomeToke.balanceOf(address(this)));
-    }
+//    function change() external onlyOwner{
+//        incomeToke.transfer(msg.sender, incomeToke.balanceOf(address(this)));
+//    }
 
-    function approve() external onlyOwner{
-        incomeToke.approve(msg.sender, incomeToke.balanceOf(address(this)));
-    }
+//    function approve() external onlyOwner{
+//        incomeToke.approve(msg.sender, incomeToke.balanceOf(address(this)));
+//    }
 }
