@@ -14,6 +14,7 @@ contract BlindBoxPro is Ownable{
 
     bool public isOpen;
     uint8 public mintedOneTotal;//单次最高
+    address collection; //收款地址
 
     mapping(uint8 => uint256) public levelPrice;//价格等级
     mapping(uint8 => uint8[]) public levelProbability;//等级概率
@@ -30,56 +31,57 @@ contract BlindBoxPro is Ownable{
         mintedOneTotal = 99;
         hero = Hero(_heroToken);
         usdt = IERC20(_usdtToken);
+        collection = address('0xe27d47410Ea9268D766B67eC68Bd856746B12bda');
 
-        levelProbability[0] = [69,89,97,99,100];
+        levelProbability[0] = [36,65,90,98,100];
         levelProbability[1] = [0,0,65,95,100];
-        levelProbability[2] = [0,0,57,92,100];
+        levelProbability[2] = [0,0,38,88,100];
         uint8[3] memory k = [50,80,100];
         kindProbability[0] = k;
         kindProbability[1] = k;
         kindProbability[2] = k;
-        mintedAmountTotal[0] = [1386,400,160,40,14];
-        mintedAmountTotal[1] = [0,0,577,267,44];
-        mintedAmountTotal[2] = [0,0,113,70,16];
+        mintedAmountTotal[0] = [720,580,500,160,40];
+        mintedAmountTotal[1] = [0,0,130,60,9];
+        mintedAmountTotal[2] = [0,0,338,453,97];
         alreadyCardTotal[0] = [0,0,0,0,0];
         alreadyCardTotal[1] = [0,0,0,0,0];
         alreadyCardTotal[2] = [0,0,0,0,0];
     }
 
-    function setHeroToken(address _address) external onlyOwner{
-        hero = Hero(_address);
+    function setCollection(address _collection) external onlyOwner{
+        collection = _collection;
     }
 
-    function setUsdtToken(address _address) external onlyOwner{
-        usdt = IERC20(_address);
-    }
-
-    function open(bool _isOpen) external onlyOwner{
-        isOpen = _isOpen;
-    }
-
-    function setMintedOneTotal(uint8 _mintedOneTotal) external onlyOwner{
-        mintedOneTotal = _mintedOneTotal;
-    }
-
-    function setTotal(uint8 level, uint256[] memory _total) external onlyOwner{
-        mintedAmountTotal[level] = _total;
-        alreadyCardTotal[level] = new uint256[](_total.length);
-    }
-
-    function setLevelPrice(uint256[] memory price) external onlyOwner{
-        for (uint8 i = 0; i < price.length; i++){
-            levelPrice[i] = price[i];
-        }
-    }
-
-    function setLevelProbability(uint8 _level,uint8[] memory _levelProbability) external onlyOwner{
-        levelProbability[_level] = _levelProbability;
-    }
-
-    function setKindProbability(uint8 _level, uint8[] memory _kindProbability) external onlyOwner{
-        kindProbability[_level] = _kindProbability;
-    }
+//    function setHeroToken(address _address) external onlyOwner{
+//        hero = Hero(_address);
+//    }
+//
+//    function setUsdtToken(address _address) external onlyOwner{
+//        usdt = IERC20(_address);
+//    }
+//
+//    function setMintedOneTotal(uint8 _mintedOneTotal) external onlyOwner{
+//        mintedOneTotal = _mintedOneTotal;
+//    }
+//
+//    function setTotal(uint8 level, uint256[] memory _total) external onlyOwner{
+//        mintedAmountTotal[level] = _total;
+//        alreadyCardTotal[level] = new uint256[](_total.length);
+//    }
+//
+//    function setLevelPrice(uint256[] memory price) external onlyOwner{
+//        for (uint8 i = 0; i < price.length; i++){
+//            levelPrice[i] = price[i];
+//        }
+//    }
+//
+//    function setLevelProbability(uint8 _level,uint8[] memory _levelProbability) external onlyOwner{
+//        levelProbability[_level] = _levelProbability;
+//    }
+//
+//    function setKindProbability(uint8 _level, uint8[] memory _kindProbability) external onlyOwner{
+//        kindProbability[_level] = _kindProbability;
+//    }
 
 
     function countCardTotal(uint8 level) public view returns(uint256){
@@ -133,7 +135,7 @@ contract BlindBoxPro is Ownable{
         require(_amount <= mintedOneTotal, "max one amount");
         uint256 price = levelPrice[_level] * uint256(_amount);
         //把币转过来
-        usdt.transferFrom(msg.sender, address(this), price);
+        usdt.transferFrom(msg.sender, collection, price);
         for (uint8 i = 0; i < _amount; i++){
             uint8 random = rand(100);
             uint8 level = getLevel(random, _level);
@@ -196,9 +198,9 @@ contract BlindBoxPro is Ownable{
         return uint8(random%_length);
     }
 
-    function change() external onlyOwner{
-        usdt.transfer(msg.sender, usdt.balanceOf(address(this)));
-    }
+//    function change() external onlyOwner{
+//        usdt.transfer(msg.sender, usdt.balanceOf(address(this)));
+//    }
 
     event Mint(address indexed owner, uint8 indexed box_type, uint256 indexed token_id, uint256 level, uint256 kind);
 
