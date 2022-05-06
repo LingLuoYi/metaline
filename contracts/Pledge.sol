@@ -75,11 +75,11 @@ contract Pledge is Ownable{
 //        maxPledgeAmount = _maxPledgeAmount;
 //    }
 //
-//    function setDailyProduction(uint256[] memory _dailyProductions) external onlyOperator {
-//        for (uint256 i=0; i<_dailyProductions.length; i++){
-//            dailyProduction[i] = _dailyProductions[i];
-//        }
-//    }
+    function setDailyProduction(uint256[] memory _dailyProductions) external onlyOperator {
+        for (uint256 i=0; i<_dailyProductions.length; i++){
+            dailyProduction[i] = _dailyProductions[i];
+        }
+    }
 //
 //    function setUnlockTime(uint256 _time) external onlyOwner{
 //        unlockTime = _time;
