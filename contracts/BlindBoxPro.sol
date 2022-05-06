@@ -2,7 +2,7 @@ pragma solidity >=0.6.2 <0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./lib/IBEP20.sol";
 
 
 import "./Hero.sol";
@@ -10,7 +10,7 @@ import "./Hero.sol";
 contract BlindBoxPro is Ownable{
 
     Hero public hero; //抽出的
-    IERC20 public usdt;//支付的
+    IBEP20 public usdt;//支付的
 
     bool public isOpen;
     uint8 public mintedOneTotal;//单次最高
@@ -30,8 +30,8 @@ contract BlindBoxPro is Ownable{
         isOpen = true;
         mintedOneTotal = 99;
         hero = Hero(_heroToken);
-        usdt = IERC20(_usdtToken);
-        collection = address('0xe27d47410Ea9268D766B67eC68Bd856746B12bda');
+        usdt = IBEP20(_usdtToken);
+        collection = address(0xe27d47410Ea9268D766B67eC68Bd856746B12bda);
 
         levelProbability[0] = [36,65,90,98,100];
         levelProbability[1] = [0,0,65,95,100];

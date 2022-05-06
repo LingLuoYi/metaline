@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "./Hero.sol";
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./lib/IBEP20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -16,7 +16,7 @@ contract Pledge is Ownable{
     bool public isOpen; //开放质押？
     uint256 public pledgeId;
 
-    IERC20 incomeToke; //收益token
+    IBEP20 incomeToke; //收益token
     Hero pledgeToken; //质押token
 
     mapping(address => bool) public operators;
@@ -50,7 +50,7 @@ contract Pledge is Ownable{
     mapping(uint256 => UnlockOrder[]) public  unlockOrderMap;
 
     constructor(address _incomeToke, address _pledgeToken){
-        incomeToke = IERC20(_incomeToke);
+        incomeToke = IBEP20(_incomeToke);
         pledgeToken = Hero(_pledgeToken);
         isOpen = true;
         maxPledgeAmount = 100;
